@@ -7,6 +7,7 @@ class GameObjectMoveable : public GameObject
 {
 	protected:
 		Direction ObjDir;
+        int playerID;
 	public:
 		virtual GOPos Position() = 0;
 };

@@ -23,7 +23,8 @@ public:
 
     return 0;  // if it's not one of the valid types
     }
-
+private:
+  std::istream  *in_;  
 
 }
 

@@ -179,7 +179,7 @@ class GameObjectMoveable : public GameObject
 --              Point temp = getDirectionalPoint(10, 30);
 --              a += temp;
 --
---                Point a now has moved 10 units into 30 degree direction.
+--              Point a now has moved 10 units into 30 degree direction.
 -----------------------------------------------------------------------------*/
         Point getDirectionalPoint(double distance, double degree);
         

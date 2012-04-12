@@ -263,16 +263,125 @@ class GameObject
 --                  Prints out the member variable values for debugging purpose
 -----------------------------------------------------------------------------*/
         virtual void print(std::ostream& os) const;
-        
-        void setObjID(int id);
-        Point getSpriteTopLeft() const;
-        void setHitBox(Point tl,
-                       Point tr,
-                       Point bl,
-                       Point br);
-        void printHitBox(std::ostream& os) const;
 
+/*-----------------------------------------------------------------------------
+--  FUNCTION:
+--                  setOjbID
+--  DATE:
+--                  April , 2012
+--  REVISIONS:
+--
+--  DESIGNER:
+--                  
+--  PROGRAMMER:
+--                  
+--  INTERFACE:
+--                  setObjID(int id)
+--  RETURNS:
+--                  void.
+--  NOTES:
+--                  Sets the object ID of the GameObject
+-----------------------------------------------------------------------------*/
+        void  setObjID(int id);
+
+/*-----------------------------------------------------------------------------
+--  FUNCTION:
+--                  getSpriteTopLeft
+--  DATE:
+--                  April , 2012
+--  REVISIONS:
+--
+--  DESIGNER:
+--                  
+--  PROGRAMMER:
+--                  
+--  INTERFACE:
+--                  getSpriteTopLeft() const
+--  RETURNS:
+--                  Point.
+--  NOTES:
+--                  Gets the drawing point for the sprite
+-----------------------------------------------------------------------------*/
+        Point getSpriteTopLeft() const;
+
+/*-----------------------------------------------------------------------------
+--  FUNCTION:
+--                  setHitBox
+--  DATE:
+--                  April , 2012
+--  REVISIONS:
+--
+--  DESIGNER:
+--                  
+--  PROGRAMMER:
+--                  
+--  INTERFACE:
+--                  setHitBox(Point tl, Point tr, Point bl, Point br)
+--  RETURNS:
+--                  void.
+--  NOTES:
+--                  Sets the ship's hitbox area
+-----------------------------------------------------------------------------*/
+        void  setHitBox(Point tl, Point tr, Point bl, Point br);
+
+/*-----------------------------------------------------------------------------
+--  FUNCTION:
+--                  printHitBox
+--  DATE:
+--                  April , 2012
+--  REVISIONS:
+--
+--  DESIGNER:
+--                  
+--  PROGRAMMER:
+--                  
+--  INTERFACE:
+--                  printHitBox(std::ostream& os) const
+--  RETURNS:
+--                  void.
+--  NOTES:
+--                  Prints the coordinates of the four corners of the Hitbox
+-----------------------------------------------------------------------------*/
+        void  printHitBox(std::ostream& os) const;
+
+/*-----------------------------------------------------------------------------
+--  FUNCTION:
+--                  update
+--  DATE:
+--                  April , 2012
+--  REVISIONS:
+--
+--  DESIGNER:       Roger Fan
+--                  
+--  PROGRAMMER:     Roger Fan
+--                  
+--  INTERFACE:
+--                  update(const std::string &str)
+--  RETURNS:
+--                  virutal void.
+--  NOTES:
+--                  Updates the object with a string (recieved from the server)
+-----------------------------------------------------------------------------*/
         virtual void update(const std::string &str) = 0;
+
+/*-----------------------------------------------------------------------------
+--  FUNCTION:
+--                  toString
+--  DATE:
+--                  April , 2012
+--  REVISIONS:
+--
+--  DESIGNER:
+--                  
+--  PROGRAMMER:
+--                  
+--  INTERFACE:
+--                  toString() const
+--  RETURNS:
+--                  virutal std::string.
+--  NOTES:
+--                  Constructs a string to be sent to the server
+-----------------------------------------------------------------------------*/
         virtual std::string toString() const = 0;
 };
 

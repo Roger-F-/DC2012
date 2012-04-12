@@ -4,7 +4,7 @@ GameObject::GameObject(ObjectType type, int objID, double degree, double posX, d
     :type_(type), objID_(objID), degree_(degree), pos_(posX, posY)
 {
     double sprite_w, sprite_h, hb_w, hb_h;
-    
+
     switch(type_)
     {
         case SHIP1:

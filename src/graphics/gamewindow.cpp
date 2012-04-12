@@ -7,11 +7,14 @@
 
 #include <QGraphicsPixmapItem>
 #include <QKeyEvent>
+#include <QLineEdit>
 #include <QCursor>
+#include "../../src/env/chat/ChatDlg.h"
 #include <QMessageBox>
 #include <QThread>
 #include <cmath>
 #include <sstream>
+#include "../env/gamemap.h"
 
 GameWindow::GameWindow(QWidget *parent)
     : QGraphicsView(parent), timer_(this), scene_(new QGraphicsScene()), timerCounter_(0)
@@ -23,27 +26,29 @@ GameWindow::GameWindow(QWidget *parent)
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-    scene_->setSceneRect(0, 0, CLIENT_WIDTH, CLIENT_HEIGHT);
+    isClientDead_ = TRUE;
+
+    map_ = new GameMap(":/src/env/maps/finalMap.tmx");
+    // env chat message stuff
+    //change 1 to actual client ID
+    chatdlg_ = new ChatDlg(this, 1);
+    //
+    chatdlg_->setModal(false);
+    isChatting_ = false;
+    chatdlg_->setGeometry(0, (this->geometry().height() - 150), 400, 150);
+
+    scene_ = new QGraphicsScene();
+    /* Change these constants later */
+    scene_->setSceneRect(0, 0, 160 * 25, 120 * 25);
     setScene(scene_);
+    setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
+    setTransformationAnchor(QGraphicsView::AnchorViewCenter);
 
-    // load map - the positions will eventually be stored in an xml file
-    QPixmap land(TILE_LAND1);
-    QPixmap sea(TILE_WATER1);
-    for (int x = 0; x < CLIENT_WIDTH; x += 50)
+    // load map - this will take a few seconds
+    
+    for(std::map<Point, Tile*>::iterator i = map_->gameTiles_.begin(); i != map_->gameTiles_.end(); i++)
     {
-        for(int y = 0; y < CLIENT_HEIGHT / 3; y += 50)
-        {
-            QGraphicsPixmapItem *landTile = new QGraphicsPixmapItem(land);
-            landTile->setOffset(x, y);
-            scene_->addItem(landTile);
-        }
-
-        for(int y = CLIENT_HEIGHT / 3; y < CLIENT_HEIGHT; y += 50)
-        {
-            QGraphicsPixmapItem *seaTile = new QGraphicsPixmapItem(sea);
-            seaTile->setOffset(x, y);
-            scene_->addItem(seaTile);
-        }
+        scene()->addItem(i->second);
     }
 
     // get instance to client so we can send and receive
@@ -95,7 +100,7 @@ void GameWindow::mousePressEvent(QMouseEvent *event)
     // this is set by the update game timer to prevent ships from spamming shots
     if (ships_[clientId_]->canShoot())
     {
-        double angle = ships_[clientId_]->shoot(event->pos());
+        double angle = ships_[clientId_]->shoot(mapToScene(event->pos()).toPoint());
 
         Message msg;
         msg.setID(clientId_);
@@ -114,65 +119,95 @@ void GameWindow::mousePressEvent(QMouseEvent *event)
 
 void GameWindow::keyPressEvent(QKeyEvent *event)
 {
-    GOM_Ship* myShip = (GOM_Ship *) ships_[clientId_]->getGameObject();
 
-    switch(event->key())
+    if(!isClientDead_)
     {
-    case Qt::Key_W:
-    case Qt::Key_Up:
-        if(!event->isAutoRepeat())
-            myShip->setActionFlag(ACCEL, true);
-        break;
-    case Qt::Key_A:
-    case Qt::Key_Left:
-        if(!event->isAutoRepeat())
-            myShip->setActionFlag(ROTATE_L, true);
-        break;
-    case Qt::Key_S:
-    case Qt::Key_Down:
-        if(!event->isAutoRepeat())
-            myShip->setActionFlag(DECEL, true);
-        break;
-    case Qt::Key_D:
-    case Qt::Key_Right:
-        if(!event->isAutoRepeat())
-            myShip->setActionFlag(ROTATE_R, true);
-        break;
-    case Qt::Key_Space:
-        QMessageBox::information(this, "Fire!", "Assume that a bullet was fired.");
-        break;
+        QLineEdit *le = chatdlg_->findChild<QLineEdit *>("lineEdit_input");
+
+        GOM_Ship* myShip = (GOM_Ship *) ships_[clientId_]->getGameObject();
+
+        switch(event->key())
+        {
+        case Qt::Key_W:
+        case Qt::Key_Up:
+            if(!event->isAutoRepeat())
+                myShip->setActionFlag(ACCEL, true);
+            break;
+        case Qt::Key_A:
+        case Qt::Key_Left:
+            if(!event->isAutoRepeat())
+                myShip->setActionFlag(ROTATE_L, true);
+            break;
+        case Qt::Key_S:
+        case Qt::Key_Down:
+            if(!event->isAutoRepeat())
+                myShip->setActionFlag(DECEL, true);
+            break;
+        case Qt::Key_D:
+        case Qt::Key_Right:
+            if(!event->isAutoRepeat())
+                myShip->setActionFlag(ROTATE_R, true);
+            break;
+        case Qt::Key_Space:
+            QMessageBox::information(this, "Fire!", "Assume that a bullet was fired.");
+            break;
+        case Qt::Key_Return:
+        case Qt::Key_Enter:
+            // this will change when we have the chat portion as it's own
+            // frame/widget. We also set the lineEdit_input to have focus()
+            if(!this->isChatting())
+            {
+                if(!chatdlg_->isVisible())
+                    chatdlg_->show();
+                le->setVisible(true);
+                le->setFocus();
+
+                this->setChatting(true);
+            }
+            else
+            {
+                // eventually we will just hide the lineEdit control
+                le->setVisible(false);
+                this->setChatting(false);
+            }
+            break;
+
+        }
     }
 }
 
 void GameWindow::keyReleaseEvent(QKeyEvent *event)
 {
-    GOM_Ship* myShip = (GOM_Ship *) ships_[clientId_]->getGameObject();
-
-    switch(event->key())
+    if(!isClientDead_)
     {
-    case Qt::Key_W:
-    case Qt::Key_Up:
-        if(!event->isAutoRepeat())
-            myShip->setActionFlag(ACCEL, false);
-        break;
-    case Qt::Key_A:
-    case Qt::Key_Left:
-        if(!event->isAutoRepeat())
-            myShip->setActionFlag(ROTATE_L, false);
-        break;
-    case Qt::Key_S:
-    case Qt::Key_Down:
-        if(!event->isAutoRepeat())
-            myShip->setActionFlag(DECEL, false);
-        break;
-    case Qt::Key_D:
-    case Qt::Key_Right:
-        if(!event->isAutoRepeat())
-            myShip->setActionFlag(ROTATE_R, false);
-        break;
-    case Qt::Key_Space:
-        QMessageBox::information(this, "Fire!", "Assume that a bullet was fired.");
-        break;
+        GOM_Ship* myShip = (GOM_Ship *) ships_[clientId_]->getGameObject();
+
+        switch(event->key())
+        {
+        case Qt::Key_W:
+        case Qt::Key_Up:
+            if(!event->isAutoRepeat())
+                myShip->setActionFlag(ACCEL, false);
+            break;
+        case Qt::Key_A:
+        case Qt::Key_Left:
+            if(!event->isAutoRepeat())
+                myShip->setActionFlag(ROTATE_L, false);
+            break;
+        case Qt::Key_S:
+        case Qt::Key_Down:
+            if(!event->isAutoRepeat())
+                myShip->setActionFlag(DECEL, false);
+            break;
+        case Qt::Key_D:
+        case Qt::Key_Right:
+            if(!event->isAutoRepeat())
+                myShip->setActionFlag(ROTATE_R, false);
+            break;
+        case Qt::Key_Space:
+            QMessageBox::information(this, "Fire!", "Assume that a bullet was fired.");
+            break;
+        }
     }
 }
 
@@ -203,18 +238,22 @@ void GameWindow::processGameMessage(Message* message)
     GraphicsObject* graphic;
     QStringList tokens;
     int objID;
-    Hitbox shipBox;
     QGraphicsPixmapItem* px;
-
-    // for debugging hit box
-    static QGraphicsItem *line1, *line2, *line3, *line4;
-    QPen pen;
+    Message sendMsg;
+    std::string data;
 
     switch (message->getType())
     {
     case Message::CONNECTION:
         clientId_ = message->getID();
-        if (message->getData() == "Refused")
+        if (message->getData() == "Accepted")
+        {
+            data = std::string("0");
+            sendMsg.setID(clientId_);
+            sendMsg.setAll(data, Message::RESPAWN);
+            client_->write(&sendMsg);
+        }
+        else if (message->getData() == "Refused")
         {
             QMessageBox::information(NULL, QString("Connection Problem"), QString("Connection Refused"));
             // handle the problem here somehow or just pray that the connection always succeeds
@@ -228,6 +267,8 @@ void GameWindow::processGameMessage(Message* message)
 
         if (obj->getType() == SHIP1 || obj->getType() == SHIP2)
         {
+            if(message->getID() == clientId_)
+                isClientDead_ = FALSE;
             ships_[message->getID()] = (ShipGraphicsObject*) graphic;
             scene_->addItem(graphic->getPixmapItem());
         }
@@ -282,12 +323,15 @@ void GameWindow::processGameMessage(Message* message)
 
 void GameWindow::updateGame()
 {
-    // ship can only shoot once every ~800 ms
-    timerCounter_++;
-    if (timerCounter_ >= 20)
+    if(!isClientDead_)
     {
-        ships_[clientId_]->setCanShoot();
-        timerCounter_ = 0;
+        // ship can only shoot once every ~800 ms
+        timerCounter_++;
+        if (timerCounter_ >= 20)
+        {
+            ships_[clientId_]->setCanShoot();
+            timerCounter_ = 0;
+        }
     }
 
     // update all the projectiles since the server doesn't send us
@@ -311,24 +355,50 @@ void GameWindow::updateGame()
 
     processMessages();
 
-    // update our own ship
-    GOM_Ship* shipObj = (GOM_Ship *) ships_[clientId_]->getGameObject();
-    shipObj->move();
-    ships_[clientId_]->getPixmapItem()->setOffset(shipObj->getSpriteTopLeft().getX(),
-                                                  shipObj->getSpriteTopLeft().getY());
+    if(!isClientDead_)
+    {
+        // update our own ship
+        GOM_Ship* shipObj = (GOM_Ship *) ships_[clientId_]->getGameObject();
+        shipObj->move();
 
-    ships_[clientId_]->getPixmapItem()->setTransformOriginPoint(shipObj->getPosition().getX(),
-                                                               shipObj->getPosition().getY());
+        /* Needs to move the viewport, not the ship. */
 
-    ships_[clientId_]->getPixmapItem()->setRotation(shipObj->getDegree() - 270);
+        ships_[clientId_]->getPixmapItem()->setOffset(shipObj->getSpriteTopLeft().getX(),
+                                                      shipObj->getSpriteTopLeft().getY());
+        ships_[clientId_]->getPixmapItem()->setTransformOriginPoint(shipObj->getPosition().getX(),
+                                                                   shipObj->getPosition().getY());
 
-    // send new coordinates of our ship to server
-    // the message is dynamically allocated although typically there is no need to do so
-    // but for some reason we're getting segfaults
-    Message* msg = new Message;
-    msg->setID(clientId_);
-    msg->setData(shipObj->toString());
-    msg->setType(Message::UPDATE);
-    client_->write(msg);
-    delete msg;
+        if(map_->isLand(shipObj->getPosition()))
+        {
+            printf("Hit Land: %d %d\n", (int)shipObj->getPosition().getX(), (int)shipObj->getPosition().getY()); //Ship hit land, do something here
+            fflush(stdout);
+        }
+
+        centerOn(shipObj->getPosition().getX(), shipObj->getPosition().getY());
+
+
+        /* This is ok */
+        ships_[clientId_]->getPixmapItem()->setRotation(shipObj->getDegree() - 270);
+
+        // send new coordinates of our ship to server
+        // the message is dynamically allocated although typically there is no need to do so
+        // but for some reason we're getting segfaults
+        Message* msg = new Message;
+        msg->setID(clientId_);
+        msg->setData(shipObj->toString());
+        msg->setType(Message::UPDATE);
+        client_->write(msg);
+        delete msg;
+    }
+}
+
+
+void GameWindow::setChatting(bool b)
+{
+    GameWindow::isChatting_ = b;
+}
+
+bool GameWindow::isChatting()
+{
+    return GameWindow::isChatting_;
 }

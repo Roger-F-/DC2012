@@ -1,22 +1,13 @@
 #include "tile.h"
 
-Tile::Tile(const Point& position)
-    : position_(position)
+Tile::Tile(QPixmap sprite, Point position, int type) : QGraphicsPixmapItem(sprite)
 {
-
+        type_ = type;
+        position_ = position;
+        setOffset(position.getX(), position.getY());
 }
 
-/*
-void Tile::setPosition(int x, int y)
+int Tile::getTileType()
 {
-    position_.setX(x);
-    position_.setY(y);
+    return type_;
 }
-*/
-
-/*
-Point Tile::getPosition()
-{
-    return position_;
-}
-*/
